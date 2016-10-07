@@ -249,6 +249,49 @@ GetTFTP:
 return 0 /* GetTFTP */
  
  
+/* Procedure GetFTP
+   Use CMS FTP client to download files over anonymous FTP
+     server: remote FTP server hostname
+     path: remote file location
+     filename: local file name
+     transfermode: 'ascii' or 'binary'
+*/
+GetFTP:
+
+  parse arg ftpserver path filename transfermode
+
+  queue 'anonymous anonymous'
+  if transfermode <> '' then
+    queue transfermode
+  queue 'get' path filename
+  queue 'quit'
+
+  'set cmstype ht' /* suppress ftp output */
+  'ftp' ftpserver '(exit'
+  'set cmstype rt'
+
+return 0 /* GetFTP */
+
+
+/* Procedure GetURL
+   Download from a URL (or plain TFTP path)
+*/
+GetURL:
+
+  /* is it an FTP url? */
+  parse arg 'ftp://' ftpserver '/' path filename
+  if ftpserver <> '' & path <> '' then do
+    call GetFTP ftpserver path filename 'binary'
+    return 0
+  end
+
+  /* assume it's a TFTP path on the PXE server */
+  parse arg path filename
+  call GetTFTP path filename 'octet'
+
+return 0 /* GetURL */
+
+
 /* Procedure DownloadBinaries
    Download kernel and initial RAMdisk.  Convert both
    to fixed record length 80.
@@ -258,12 +301,12 @@ DownloadBinaries:
   inputline = linein(profiledetail)         /* first line is kernel */
   parse var inputline kernelpath
   say 'Downloading kernel ['kernelpath']...'
-  call GetTFTP kernelpath 'kernel.img.t' octet
+  call GetURL kernelpath 'kernel.img.t'
  
   inputline = linein(profiledetail)        /* second line is initrd */
   parse var inputline initrdpath
   say 'Downloading initrd ['initrdpath']...'
-  call GetTFTP initrdpath 'initrd.img.t' octet
+  call GetURL initrdpath 'initrd.img.t'
  
   inputline = linein(profiledetail)  /* third line is ks kernel arg */
   parse var inputline ksline
