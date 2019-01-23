@@ -70,7 +70,7 @@ if (dsc <> 'DSC') then do                      /* user is connected */
   'WAKEUP +00:10 (CONS'
   /* Check for interrupt */
   if rc = 6 then do
-    say 'Interrupt: entering CMS.'
+    say 'zPXE interrupted, entering CMS...'
     pull                                             /* Clear Stack */
     exit
   end
@@ -121,6 +121,7 @@ if lines(profiledetail) > 0 then do
  
   bootRc = ParseSystemRecord()        /* parse file for boot action */
   if bootRc = 0 then
+    say 'Booting locally...'
     'cp ipl' iplDisk                           /* boot default DASD */
   else do
     call DownloadBinaries             /* download kernel and initrd */
@@ -263,6 +264,12 @@ GetFTP:
   queue 'anonymous anonymous'
   if transfermode <> '' then
     queue transfermode
+  
+  /* Paths longer than 80 chars are not processed correctly by z/VM FTP */
+  do while length(path) > 80
+    parse value path with onedir '/' remainder
+    queue 'cd' onedir
+    path = remainder
   queue 'get' path filename
   queue 'quit'
 
