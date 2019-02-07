@@ -89,14 +89,19 @@ if lines(config) > 0 then do
 end
  
 /* Define temporary disk (VDISK) to store files */
-'set vdisk syslim infinite'
-'set vdisk userlim infinite'
+/* z/Linux guest do not have the proper CP priv classes to */
+/* issue the following two commands.  */     
+/* 'set vdisk syslim infinite'  */
+/* 'set vdisk userlim infinite' */ 
 'detach ffff'                             /* detach ffff if present */
 'define vfb-512 as ffff blk 200000' /* 512 byte block size =~ 100 MB */
+/*  create a new stack */
+'makebuf'
 queue '1'
 queue 'tmpdsk'
 'format ffff t'                     /* format VDISK as file mode t */
- 
+/* drop the stack */
+'dropbuf' 
 /* Link TCPMAINT disk for access to TFTP */
 'link tcpmaint 592 592 rr'
 'access 592 e'
@@ -120,9 +125,11 @@ if lines(profiledetail) > 0 then do
   say ''
  
   bootRc = ParseSystemRecord()        /* parse file for boot action */
-  if bootRc = 0 then
+  if bootRc = 0 then do
     say 'Booting locally...'
-    'cp ipl' iplDisk                           /* boot default DASD */
+    'cp ipl' iplDisk
+    end  
+                           /* boot default DASD */
   else do
     call DownloadBinaries             /* download kernel and initrd */
     say 'Starting install...'
@@ -237,7 +244,8 @@ return 0 /* CheckServer */
 GetTFTP:
  
   parse arg path filename transfermode
- 
+ /* make a stack */
+'makebuf'
   if transfermode <> '' then
     queue 'mode' transfermode
   queue 'get 'path filename
@@ -246,7 +254,8 @@ GetTFTP:
   'set cmstype ht'                          /* suppress tftp output */
   tftp server
   'set cmstype rt'
- 
+ /* drop the stack */
+'dropbuf'
 return 0 /* GetTFTP */
  
  
@@ -260,7 +269,8 @@ return 0 /* GetTFTP */
 GetFTP:
 
   parse arg ftpserver path filename transfermode
-
+/* make a new buffer */
+'makebuf'
   queue 'anonymous anonymous'
   if transfermode <> '' then
     queue transfermode
@@ -276,7 +286,8 @@ GetFTP:
   'set cmstype ht' /* suppress ftp output */
   'ftp' ftpserver '(exit'
   'set cmstype rt'
-
+/* drop it */
+'dropbuf'
 return 0 /* GetFTP */
 
 
