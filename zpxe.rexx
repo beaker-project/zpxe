@@ -13,8 +13,10 @@ default dasd in ZPXE CONF, as well as the hostname of the Cobbler
 server.
 ---
  
-Copyright 2006-2009, Red Hat, Inc
+Copyright 2006-2019, Red Hat, Inc
 Brad Hinson <bhinson@redhat.com>
+Leo Jones <lejones@redhat.com>
+Tomas Klohna <tklohna@redhat.com>
  
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,6 +36,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  
  
 /* Defaults */
+
+CONFIG_VERSION = '1.1'
+say 'zPXE version: ' CONFIG_VERSION
  
 server = ''                           /* define server in ZPXE CONF */
 iplDisk = 100                   /* overridden by value in ZPXE CONF */
