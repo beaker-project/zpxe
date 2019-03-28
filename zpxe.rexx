@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  
 /* Defaults */
 
-CONFIG_VERSION = '1.1'
+CONFIG_VERSION = '1.2'
 say 'zPXE version: ' CONFIG_VERSION
  
 server = ''                           /* define server in ZPXE CONF */
@@ -285,6 +285,7 @@ GetFTP:
     parse value path with onedir '/' remainder
     queue 'cd' onedir
     path = remainder
+  end
   queue 'get' path filename
   queue 'quit'
 
