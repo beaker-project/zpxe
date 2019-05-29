@@ -1,45 +1,45 @@
 /* zPXE: REXX PXE Client for System z
- 
+
 zPXE is a PXE client used with Cobbler.  It must be run under
 z/VM.  zPXE uses TFTP to first download a list of profiles,
 then a specific kernel, initial RAMdisk, and PARM file.  These
 files are then punched to start the install process.
- 
+
 zPXE does not require a writeable 191 A disk.  Files are
 downloaded to a temporary disk (VDISK).
- 
+
 zPXE can also IPL a DASD disk by default.  You can specify the
 default dasd in ZPXE CONF, as well as the hostname of the Cobbler
 server.
 ---
- 
+
 Copyright 2006-2019, Red Hat, Inc
 Brad Hinson <bhinson@redhat.com>
 Leo Jones <lejones@redhat.com>
 Tomas Klohna <tklohna@redhat.com>
- 
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
- 
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
- 
+
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301  USA
 */
- 
- 
+
+
 /* Defaults */
 
-CONFIG_VERSION = '1.2'
+CONFIG_VERSION = '1.2.1'
 say 'zPXE version: ' CONFIG_VERSION
- 
+
 server = ''                           /* define server in ZPXE CONF */
 iplDisk = 100                   /* overridden by value in ZPXE CONF */
 profilelist = PROFILE LIST T    /* VDISK will be defined as T later */
@@ -47,11 +47,11 @@ profiledetail = PROFILE DETAIL T
 zpxeparm = ZPXE PARM T
 zpxeconf = ZPXE CONF T
 config = ZPXE CONF
- 
+
 /* For translating strings to lowercase */
 upper = xrange('A', 'Z')
 lower = xrange('a', 'z')
- 
+
 /* Query user ID.  This is used later to determine:
      1. Whether a user-specific PXE profile exists.
      2. Whether user is disconnected. If so, IPL the default disk.
@@ -80,7 +80,7 @@ if (dsc <> 'DSC') then do                      /* user is connected */
     exit
   end
 end
- 
+
 /* Check for config file */
 if lines(config) > 0 then do
   inputline = linein(config)    /* first line is server hostname/IP */
@@ -92,12 +92,12 @@ if lines(config) > 0 then do
     parse var inputline . userid .
   end
 end
- 
+
 /* Define temporary disk (VDISK) to store files */
 /* z/Linux guest do not have the proper CP priv classes to */
-/* issue the following two commands.  */     
+/* issue the following two commands.  */
 /* 'set vdisk syslim infinite'  */
-/* 'set vdisk userlim infinite' */ 
+/* 'set vdisk userlim infinite' */
 'detach ffff'                             /* detach ffff if present */
 'define vfb-512 as ffff blk 200000' /* 512 byte block size =~ 100 MB */
 /*  create a new stack */
@@ -106,34 +106,34 @@ queue '1'
 queue 'tmpdsk'
 'format ffff t'                     /* format VDISK as file mode t */
 /* drop the stack */
-'dropbuf' 
+'dropbuf'
 /* Link TCPMAINT disk for access to TFTP */
 'link tcpmaint 592 592 rr'
 'access 592 e'
- 
- 
+
+
 /* Check whether a user-specific PXE profile exists.
    If so, proceed with this.  Otherwise, continue and
    show the system-wide profile menu.
 */
 call GetTFTP '/s390x/s_'userid 'profile.detail.t'
- 
+
 if lines(profiledetail) > 0 then do
- 
+
   /* Get user PARM and CONF containing network info */
   call GetTFTP '/s390x/s_'userid'_parm' 'zpxe.parm.t'
   call GetTFTP '/s390x/s_'userid'_conf' 'zpxe.conf.t'
- 
+
   vmfclear                                          /* clear screen */
   call CheckServer                             /* print server name */
   say 'Profile 'userid' found'
   say ''
- 
+
   bootRc = ParseSystemRecord()        /* parse file for boot action */
   if bootRc = 0 then do
     say 'Booting locally...'
     'cp ipl' iplDisk
-    end  
+    end
                            /* boot default DASD */
   else do
     call DownloadBinaries             /* download kernel and initrd */
@@ -142,19 +142,19 @@ if lines(profiledetail) > 0 then do
     call PunchFiles                 /* punch files to begin install */
     exit
     end /* if bootRc = 0 */
- 
+
 end /* if user-specific profile found */
- 
- 
+
+
 /* Download initial profile list */
 call GetTFTP '/s390x/profile_list' 'profile.list.t'
- 
+
 vmfclear                                            /* clear screen */
 call CheckServer                               /* print server name */
- 
+
 say 'zPXE MENU'                                        /* show menu */
 say '---------'
- 
+
 count = 0
 do while lines(profilelist) > 0     /* display one profile per line */
   count = count + 1
@@ -162,17 +162,17 @@ do while lines(profilelist) > 0     /* display one profile per line */
   parse var inputline profile.count
   say count'. 'profile.count
 end
- 
+
 if (count = 0) then
   say '** Error connecting to server: no profiles found **'
- 
+
 count = count + 1
 say count'. Exit to CMS shell [IPL CMS]'
 say ''
 say ''
 say 'Enter Choice -->'
 say 'or press <Enter> to boot from disk [DASD 'iplDisk']'
- 
+
 /* Check if user is disconnected, indicating
    logon by XAUTOLOG.  In this case, IPL the
    default disk.
@@ -202,21 +202,21 @@ else do                            /* user is interactive -> prompt */
     when (answer > 0) & (answer < count)          /* valid response */
     then do
       call GetTFTP '/s390x/p_'profile.answer 'profile.detail.t'
- 
+
       /* get profile-based PARM and CONF files */
       call GetTFTP '/s390x/p_'profile.answer'_parm' 'zpxe.parm.t'
       call GetTFTP '/s390x/p_'profile.answer'_conf' 'zpxe.conf.t'
- 
+
       vmfclear                                      /* clear screen */
       say 'Using profile 'answer' ['profile.answer']'
       say ''
       call DownloadBinaries           /* download kernel and initrd */
- 
+
       say 'Starting install...'
       say ''
- 
+
       call PunchFiles
- 
+
     end /* valid answer */
     otherwise
       say 'Invalid choice, exiting to CMS shell.'
@@ -224,22 +224,22 @@ else do                            /* user is interactive -> prompt */
   end /* Select */
 end
 exit
- 
- 
+
+
 /* Procedure CheckServer
    Print error message if server is not defined.  Otherwise
    show server name
 */
 CheckServer:
- 
+
   if server = '' then
     say '** Error: No host defined in ZPXE.CONF **'
   else say 'Connected to server 'server
   say ''
- 
+
 return 0 /* CheckServer */
- 
- 
+
+
 /* Procedure GetTFTP
    Use CMS TFTP client to download files
      path: remote file location
@@ -247,7 +247,7 @@ return 0 /* CheckServer */
      transfermode [optional]: 'ascii' or 'octet'
 */
 GetTFTP:
- 
+
   parse arg path filename transfermode
  /* make a stack */
 'makebuf'
@@ -255,15 +255,15 @@ GetTFTP:
     queue 'mode' transfermode
   queue 'get 'path filename
   queue 'quit'
- 
+
   'set cmstype ht'                          /* suppress tftp output */
   tftp server
   'set cmstype rt'
  /* drop the stack */
 'dropbuf'
 return 0 /* GetTFTP */
- 
- 
+
+
 /* Procedure GetFTP
    Use CMS FTP client to download files over anonymous FTP
      server: remote FTP server hostname
@@ -279,7 +279,7 @@ GetFTP:
   queue 'anonymous anonymous'
   if transfermode <> '' then
     queue transfermode
-  
+
   /* Paths longer than 80 chars are not processed correctly by z/VM FTP */
   do while length(path) > 80
     parse value path with onedir '/' remainder
@@ -321,35 +321,35 @@ return 0 /* GetURL */
    to fixed record length 80.
 */
 DownloadBinaries:
- 
+
   inputline = linein(profiledetail)         /* first line is kernel */
   parse var inputline kernelpath
   say 'Downloading kernel ['kernelpath']...'
   call GetURL kernelpath 'kernel.img.t'
- 
+
   inputline = linein(profiledetail)        /* second line is initrd */
   parse var inputline initrdpath
   say 'Downloading initrd ['initrdpath']...'
   call GetURL initrdpath 'initrd.img.t'
- 
+
   inputline = linein(profiledetail)  /* third line is ks kernel arg */
   parse var inputline ksline
   call lineout zpxeparm, ksline       /* add ks line to end of parm */
   call lineout zpxeparm                               /* close file */
- 
+
   /* convert to fixed record length */
   'pipe < KERNEL IMG T | fblock 80 00 | > KERNEL IMG T'
   'pipe < INITRD IMG T | fblock 80 00 | > INITRD IMG T'
- 
+
 return 0 /* DownloadBinaries */
- 
- 
+
+
 /* Procedure PunchFiles
    Punch the kernel, initial RAMdisk, and PARM file.
    Then IPL to start the install process.
 */
 PunchFiles:
- 
+
   'spool punch *'
   'close reader'
   'purge reader all'                       /* clear reader contents */
@@ -358,24 +358,24 @@ PunchFiles:
   'punch initrd img t (noh'                         /* punch initrd */
   'change reader all keep'                  /* keep files in reader */
   'ipl 00c clear'                                 /* IPL the reader */
- 
+
 return 0 /* PunchFiles */
- 
- 
+
+
 /* Procedure ParseSystemRecord
    Open system record file to look for local boot flag.
    Return 0 if local flag found (guest will IPL default DASD).
    Return 1 otherwise (guest will download kernel/initrd and install).
 */
 ParseSystemRecord:
- 
+
   inputline = linein(profiledetail)               /* get first line */
   parse var inputline systemaction .
   call lineout profiledetail                          /* close file */
- 
+
   if systemaction = 'local' then
     return 0
   else
     return 1
- 
+
 /* End ParseSystemRecord */
