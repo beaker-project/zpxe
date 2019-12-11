@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 /* Defaults */
 
-CONFIG_VERSION = '1.2.1'
+CONFIG_VERSION = '1.3.0'
 say 'zPXE version: ' CONFIG_VERSION
 
 server = ''                           /* define server in ZPXE CONF */
@@ -99,7 +99,7 @@ end
 /* 'set vdisk syslim infinite'  */
 /* 'set vdisk userlim infinite' */
 'detach ffff'                             /* detach ffff if present */
-'define vfb-512 as ffff blk 200000' /* 512 byte block size =~ 100 MB */
+'define vfb-512 as ffff blk 400000' /* 512 byte block size =~ 200 MB */
 /*  create a new stack */
 'makebuf'
 queue '1'
