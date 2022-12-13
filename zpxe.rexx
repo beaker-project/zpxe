@@ -132,6 +132,7 @@ if lines(profiledetail) > 0 then do
   bootRc = ParseSystemRecord()        /* parse file for boot action */
   if bootRc = 0 then do
     say 'Booting locally...'
+    'detach ffff'               /* detach ffff if present */
     'cp ipl' iplDisk
     end
                            /* boot default DASD */
@@ -179,6 +180,7 @@ say 'or press <Enter> to boot from disk [DASD 'iplDisk']'
 */
 if (dsc = 'DSC') then do                    /* user is disconnected */
   say 'User disconnected.  Booting from DASD 'iplDisk'...'
+  'detach ffff'                           /* detach ffff if present */
   'cp ipl' iplDisk
   end
 else do                            /* user is interactive -> prompt */
@@ -192,6 +194,7 @@ else do                            /* user is interactive -> prompt */
     when (answer = '')                            /* IPL by default */
     then do
       say 'Booting from DASD 'iplDisk'...'
+      'detach ffff'                   /* detach ffff if present */
       'cp ipl' iplDisk
       end
     when (answer < 0) | (answer > count)         /* invalid respone */
@@ -357,6 +360,7 @@ PunchFiles:
   'punch zpxe parm t (noh'                       /* punch PARM file */
   'punch initrd img t (noh'                         /* punch initrd */
   'change reader all keep'                  /* keep files in reader */
+  'detach ffff'                             /* detach vdisk save mem*/
   'ipl 00c clear'                                 /* IPL the reader */
 
 return 0 /* PunchFiles */
